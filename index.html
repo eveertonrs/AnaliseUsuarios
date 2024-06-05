@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rastreamento de Usuário</title>
+</head>
+<body>
+    <h1>Bem-vindo ao Site</h1>
+    <a href="http://google.com">Link para Página 1</a>
+    <a href="http://youtube.com">Link para Página 2</a>
+    <button id="loadData">Carregar Dados</button>
+    <div id="data"></div>
+    <div id="ip">IP do usuário: <span id="userIp"></span></div>
+
+    <script>
+// Função para obter dados do servidor
+document.getElementById('loadData').addEventListener('click', function() {
+    fetch('/data')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Dados recebidos do servidor:', data);
+            const dataDiv = document.getElementById('data');
+            dataDiv.innerHTML = JSON.stringify(data, null, 2);
+        });
+});
+
+// Função para enviar dados para o servidor
+function sendData(data) {
+    console.log('Enviando dados para o servidor:', data);
+    fetch('/track', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    }).then(response => response.json())
+      .then(data => {
+          console.log('Resposta do servidor:', data);
+          // Após enviar os dados, carrega os dados novamente para exibir a lista atualizada
+          loadEventData();
+      });
+}
+
+// Função para carregar eventos do servidor
+function loadEventData() {
+    fetch('/data')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Dados recebidos do servidor:', data);
+            const dataDiv = document.getElementById('data');
+            dataDiv.innerHTML = JSON.stringify(data, null, 2);
+        });
+}
+
+// Quando a página é carregada
+window.onload = function() {
+    window.startTime = new Date().getTime();
+    getUserIP(function(ip) {
+        const data = {
+            eventType: 'page_load',
+            timestamp: new Date().toISOString(),
+            ip: ip  // Inclui o IP nos dados enviados
+        };
+        sendData(data); // Envia os dados de carregamento da página
+    });
+};
+
+// Quando o usuário clica em um link
+document.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', function(event) {
+        const data = {
+            eventType: 'click',
+            url: event.target.href,
+            timestamp: new Date().toISOString(),
+            ip: userIp // Usa o IP armazenado na variável global
+        };
+        sendData(data); // Envia os dados do evento de clique
+    });
+});
+
+// Quando a página é descarregada
+window.onbeforeunload = function() {
+    const endTime = new Date().getTime();
+    const timeSpent = endTime - window.startTime;
+    const data = {
+        eventType: 'unload',
+        timeSpent: timeSpent,
+        timestamp: new Date().toISOString(),
+        ip: userIp // Usa o IP armazenado na variável global
+    };
+    sendData(data); // Envia os dados do evento de descarregamento da página
+};
+    </script>
+</body>
+</html>
